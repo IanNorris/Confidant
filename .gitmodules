@@ -1,0 +1,6 @@
+[submodule "vendor/restclient-cpp"]
+	path = vendor/restclient-cpp
+	url = https://github.com/mrtazz/restclient-cpp
+[submodule "vendor/curl"]
+	path = vendor/curl
+	url = https://github.com/bagder/curl
