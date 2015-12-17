@@ -1,0 +1,11 @@
+This will guide you through adding a new project to the solution.
+
+* Create a folder in the source folder for your project source code to live in
+* Copy the template files from the directory containing this readme to the parent (projects) folder.
+* Open the .vcxproj file up and ensure the ProjectSourcePath variable points to the folder containing the source code for the project that you created above.
+* Edit the prop file chosen as the last line in the project. For a static library choose lib.props, for a DLL choose dll.props, for a command line programme choose console.prop and for a windows application choose exe.prop.
+* Right click the solution in VS and add an existing project, select the project file you just created.
+* Save all.
+* For good measure you may want to close and reopen VS to ensure everything works correctly.
+
+IMPORTANT NOTE: Do not edit project settings from inside VS, instead edit the appropriate props file. If settings are project specific, edit the project file by hand.

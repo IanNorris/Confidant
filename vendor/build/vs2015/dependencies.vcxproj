@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<RootPath>..\..\..</RootPath>
+		<PropPath>$(RootPath)\build\vs2015\props</PropPath>
+		<ProjectIncludes>$(RootPath)\vendor\restclient-cpp\include</ProjectIncludes>
+	</PropertyGroup>
+	
+	<Import Project="$(PropPath)\configs.props" />
+	<PropertyGroup Label="Globals">
+		<ProjectGuid>{B16C6A82-6488-4776-AB11-283964164C6F}</ProjectGuid>
+  </PropertyGroup>
+	
+	<PropertyGroup>
+		<NoWildcards>True</NoWildcards>
+	</PropertyGroup>
+	
+	<!-- Select source to compile -->
+	<ItemGroup>
+		<ClInclude Include="$(RootPath)\vendor\restclient-cpp\include\**\*.h"/>
+		<ClCompile Include="$(RootPath)\vendor\restclient-cpp\source\*.cpp"/>
+	</ItemGroup>
+	
+	<Import Project="$(PropPath)\lib.props" />
+</Project>
