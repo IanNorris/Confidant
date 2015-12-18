@@ -4,3 +4,6 @@
 [submodule "vendor/curl"]
 	path = vendor/curl
 	url = https://github.com/bagder/curl
+[submodule "vendor/libsodium"]
+	path = vendor/libsodium
+	url = https://github.com/jedisct1/libsodium

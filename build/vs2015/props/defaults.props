@@ -75,6 +75,7 @@
 		</ClCompile>
 		<Link>
 			<GenerateDebugInformation>true</GenerateDebugInformation>
+			<IgnoreDefaultLibraryNames>LIBCMTD</IgnoreDefaultLibraryNames>
 		</Link>
 	</ItemDefinitionGroup>
 	
