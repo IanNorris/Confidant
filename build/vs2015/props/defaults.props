@@ -19,6 +19,8 @@
 		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
 	</ImportGroup>
 	
+	<Import Project="$(PropPath)\dependencies.props" />
+	
 	<!-- Set up system wide defaults -->
 	<PropertyGroup Label="Configuration">
 		<!--<CharacterSet>Unicode</CharacterSet>-->
@@ -56,7 +58,7 @@
 			<WarningLevel>Level3</WarningLevel>
 			<MultiProcessorCompilation>true</MultiProcessorCompilation>
 			<ProcessorNumber>4</ProcessorNumber>
-			<EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+			<!--<EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>-->
 			<IntrinsicFunctions>true</IntrinsicFunctions>
 			<FloatingPointModel>Fast</FloatingPointModel>
 		</ClCompile>
@@ -126,14 +128,14 @@
 	<!-- Compiler flags setup-->
 	<ItemDefinitionGroup>
 		<ClCompile>
-			<PreprocessorDefinitions>$(DefaultDefines);$(ConfigDefines);$(TypeDefines);$(ProjectDefines)</PreprocessorDefinitions>
-			<AdditionalIncludeDirectories>$(DefaultHeaders);$(ConfigHeaders);$(TypeHeaders);$(ProjectHeaders)</AdditionalIncludeDirectories>
+			<PreprocessorDefinitions>$(DefaultDefines);$(ConfigDefines);$(TypeDefines);$(ProjectDefines);$(DependencyDefines);</PreprocessorDefinitions>
+			<AdditionalIncludeDirectories>$(DefaultHeaders);$(ConfigHeaders);$(TypeHeaders);$(ProjectHeaders);$(DependencyHeaders)</AdditionalIncludeDirectories>
 		</ClCompile>
 		<ProjectReference>
 			<UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
 		</ProjectReference>
 		<Link>
-			<AdditionalLibraryDirectories>$(ProjectLibPaths);$(VCInstallDir)lib;$(WindowsSdkDir)lib;$(FrameworkSDKDir)\lib</AdditionalLibraryDirectories>
+			<AdditionalLibraryDirectories>$(ProjectLibPaths);$(DependencyLibPaths);$(VCInstallDir)lib;$(WindowsSdkDir)lib;$(FrameworkSDKDir)\lib</AdditionalLibraryDirectories>
 		</Link>
 	</ItemDefinitionGroup>
 	

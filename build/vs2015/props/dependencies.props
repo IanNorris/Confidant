@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="All" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">	
+	<!-- Defines and include paths for all modules -->
+	<PropertyGroup>
+		<DependencyDefines>CURL_STATICLIB</DependencyDefines>
+		<DependencyHeaders>$(RootPath)\vendor\restclient-cpp\include;$(RootPath)\vendor\curl\builds\libcurl-vc14-x86-$(Configuration)-static-ipv6-sspi-winssl\include;$(RootPath)\vendor\restclient-cpp\vendor\gtest-1.7.0\include;$(RootPath)\vendor\restclient-cpp\vendor\jsoncpp-0.10.5\dist;</DependencyHeaders>
+		<DependencyLibPaths>$(RootPath)\bin\$(Configuration);$(RootPath)\vendor\curl\builds\libcurl-vc14-x86-$(Configuration)-static-ipv6-sspi-winssl\lib;</DependencyLibPaths>
+	</PropertyGroup>
+	
+	<ItemDefinitionGroup>
+		<Link Condition="'$(Configuration)'=='Release'">
+		  <AdditionalDependencies>dependencies.lib;libcurl_a.lib;</AdditionalDependencies>
+		</Link>
+		
+		<Link Condition="'$(Configuration)'=='Debug'">
+		  <AdditionalDependencies>dependencies.lib;libcurl_a_debug.lib;</AdditionalDependencies>
+		</Link>
+	</ItemDefinitionGroup>
+</Project>

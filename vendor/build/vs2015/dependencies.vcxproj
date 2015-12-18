@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<RootPath>..\..\..</RootPath>
 		<PropPath>$(RootPath)\build\vs2015\props</PropPath>
-		<ProjectIncludes>$(RootPath)\vendor\restclient-cpp\include</ProjectIncludes>
+		<ProjectIncludes>$(RootPath)\vendor\restclient-cpp\include;$(RootPath)\vendor\curl\include;$(RootPath)\vendor\restclient-cpp\vendor\jsoncpp-0.10.5\dist\;$(RootPath)\vendor\restclient-cpp\vendor\gtest-1.7.0\include;$(RootPath)\vendor\restclient-cpp\vendor\gtest-1.7.0\</ProjectIncludes>
 	</PropertyGroup>
 	
 	<Import Project="$(PropPath)\configs.props" />
@@ -15,10 +15,20 @@
 		<NoWildcards>True</NoWildcards>
 	</PropertyGroup>
 	
+	<ItemDefinitionGroup>
+		<ClCompile>
+			<PreprocessorDefinitions>CURL_STATICLIB;$(PreprocessorDefinitions)</PreprocessorDefinitions>
+		</ClCompile>
+	</ItemDefinitionGroup>
+	
 	<!-- Select source to compile -->
 	<ItemGroup>
 		<ClInclude Include="$(RootPath)\vendor\restclient-cpp\include\**\*.h"/>
 		<ClCompile Include="$(RootPath)\vendor\restclient-cpp\source\*.cpp"/>
+		
+		<ClCompile Include="$(RootPath)\vendor\restclient-cpp\vendor\jsoncpp-0.10.5\dist\*.cpp"/>
+		
+		<ClCompile Include="$(RootPath)\vendor\restclient-cpp\vendor\gtest-1.7.0\src\gtest-all.cc"/>
 	</ItemGroup>
 	
 	<Import Project="$(PropPath)\lib.props" />

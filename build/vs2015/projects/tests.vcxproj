@@ -1,18 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<PropertyGroup>
-		<RootPath>..\..\..</RootPath>
-		<PropPath>$(RootPath)\build\vs2015\props</PropPath>
-	</PropertyGroup>
-	
-	<Import Project="$(PropPath)\configs.props" />
-	<PropertyGroup Label="Globals">
-		<ProjectGuid>{27FDF179-8844-4A76-A210-D60CDD7AA778}</ProjectGuid>
+  <PropertyGroup>
+    <RootPath>..\..\..</RootPath>
+    <PropPath>$(RootPath)\build\vs2015\props</PropPath>
   </PropertyGroup>
-	
-	<PropertyGroup>
-		<ProjectSourcePath>$(RootPath)\source\tests</ProjectSourcePath>
-	</PropertyGroup>
-	
-	<Import Project="$(PropPath)\console.props" />
+  <Import Project="$(PropPath)\configs.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{27FDF179-8844-4A76-A210-D60CDD7AA778}</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ProjectSourcePath>$(RootPath)\vendor\restclient-cpp\test</ProjectSourcePath>
+  </PropertyGroup>
+  <Import Project="$(PropPath)\console.props" />
 </Project>
