@@ -7,3 +7,18 @@
 [submodule "vendor/libsodium"]
 	path = vendor/libsodium
 	url = https://github.com/IanNorris/libsodium
+[submodule "vendor/slim"]
+	path = vendor/slim
+	url = https://github.com/slimphp/Slim
+[submodule "vendor/pimple"]
+	path = vendor/pimple
+	url = https://github.com/silexphp/Pimple
+[submodule "vendor/container-interop"]
+	path = vendor/container-interop
+	url = https://github.com/container-interop/container-interop
+[submodule "vendor/fastroute"]
+	path = vendor/fastroute
+	url = https://github.com/nikic/FastRoute
+[submodule "vendor/httpmessage"]
+	path = vendor/httpmessage
+	url = https://github.com/IanNorris/http-message
