@@ -1,9 +1,9 @@
 [submodule "vendor/restclient-cpp"]
 	path = vendor/restclient-cpp
-	url = https://github.com/mrtazz/restclient-cpp
+	url = https://github.com/IanNorris/restclient-cpp
 [submodule "vendor/curl"]
 	path = vendor/curl
-	url = https://github.com/bagder/curl
+	url = https://github.com/IanNorris/curl
 [submodule "vendor/libsodium"]
 	path = vendor/libsodium
-	url = https://github.com/jedisct1/libsodium
+	url = https://github.com/IanNorris/libsodium
