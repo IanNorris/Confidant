@@ -12,7 +12,15 @@
 	
 	<PropertyGroup>
 		<ProjectSourcePath>$(RootPath)\source\cl</ProjectSourcePath>
+		
+		<ProjectHeaders>$(RootPath)\source\cl</ProjectHeaders>
 	</PropertyGroup>
+	
+	<ItemDefinitionGroup>
+		<Link>
+		  <AdditionalDependencies>libconfidant.lib;</AdditionalDependencies>
+		</Link>
+	</ItemDefinitionGroup>
 	
 	<Import Project="$(PropPath)\console.props" />
 </Project>

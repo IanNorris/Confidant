@@ -3,7 +3,7 @@
 	<!-- Defines and include paths for all modules -->
 	<PropertyGroup>
 		<DependencyDefines>CURL_STATICLIB;SODIUM_STATIC</DependencyDefines>
-		<DependencyHeaders>$(RootPath)\vendor\restclient-cpp\include;$(RootPath)\vendor\curl\builds\libcurl-vc14-x86-$(Configuration)-static-ipv6-sspi-winssl\include;$(RootPath)\vendor\restclient-cpp\vendor\gtest-1.7.0\include;$(RootPath)\vendor\restclient-cpp\vendor\jsoncpp-0.10.5\dist;$(RootPath)\vendor\libsodium\src\libsodium\include</DependencyHeaders>
+		<DependencyHeaders>$(RootPath)\vendor\restclient-cpp\include;$(RootPath)\vendor\curl\builds\libcurl-vc14-x86-$(Configuration)-static-ipv6-sspi-winssl\include;$(RootPath)\vendor\restclient-cpp\vendor\gtest-1.7.0\include;$(RootPath)\vendor\restclient-cpp\vendor\jsoncpp-0.10.5\dist;$(RootPath)\vendor\libsodium\src\libsodium\include;$(RootPath)\source\lib\include</DependencyHeaders>
 		<DependencyLibPaths>$(RootPath)\bin\$(Configuration);$(RootPath)\vendor\curl\builds\libcurl-vc14-x86-$(Configuration)-static-ipv6-sspi-winssl\lib;$(RootPath)\vendor\libsodium\bin\$(Platform)\$(Configuration)\v140\static\</DependencyLibPaths>
 	</PropertyGroup>
 	

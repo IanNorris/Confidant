@@ -2,6 +2,9 @@
 
 //We are not using composer, so use our own autoloader
 require __DIR__ . '\\..\\autoloaders\\vendor.php';
+require __DIR__ . '\\..\\..\\..\\config\\server\\database.php';
+require __DIR__ . '\\..\\..\\..\\config\\server\\salts.php';
+require __DIR__ . '\\..\\utilities\\database-connection.php';
 
 /**
  * Step 2: Instantiate a Slim application
@@ -22,14 +25,23 @@ $app = new Slim\App();
  * is an anonymous function.
  */
 $app->get('/', function ($request, $response, $args) {
-    $response->write("Welcome to Slim!");
-    return $response;
+	$response->write("Welcome to Slim!");
+	$connection = DatabaseConnection::get();
+	return $response;
 });
 
 $app->get('/hello[/{name}]', function ($request, $response, $args) {
-    $response->write("Hello, " . $args['name']);
-    return $response;
+	$response->write("Hello, " . $args['name']);
+	return $response;
 })->setArgument('name', 'World!');
+
+$app->post('/queryServer', function ($request, $response, $args) {
+	$response = $response->withAddedHeader( 'Content-Type', 'application/json' );
+	$response = $response->withStatus(200);
+	$body = $response->getBody();
+	$body->write( json_encode( array( 'salt' => Config_Salts::SaltKey ) ) );
+	return $response;
+});
 
 /**
  * Step 4: Run the Slim application
