@@ -1,18 +1,18 @@
 <?php
 
-$vendor_root = '\\..\\..\\..\\vendor\\';
+$vendor_root = '/../../../vendor/';
 $relative_vendor_root = __DIR__ . $vendor_root;
 
 $autoload_registry = array(
-	'Slim\\' => 'slim\\Slim\\',
-	'FastRoute\\' => 'fastroute\\src\\',
-	'Psr\\Http\\Message\\' => 'httpmessage\\src\\',
-	'Interop\\' => 'container-interop\\src\\Interop\\',
-	'Pimple\\' => 'pimple\\src\\Pimple\\',
+	'Slim\\' => 'slim/Slim/',
+	'FastRoute\\' => 'fastroute/src/',
+	'Psr\\Http\\Message\\' => 'httpmessage/src/',
+	'Interop\\' => 'container-interop/src/Interop/',
+	'Pimple\\' => 'pimple/src/Pimple/',
 );
 
 $autoload_includes = array(
-	'fastroute\\src\\functions.php'
+	'fastroute/src/functions.php'
 );
 
 spl_autoload_register( function( $class )

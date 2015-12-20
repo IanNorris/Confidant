@@ -1,10 +1,10 @@
 <?php
 
 //We are not using composer, so use our own autoloader
-require __DIR__ . '\\..\\autoloaders\\vendor.php';
-require __DIR__ . '\\..\\..\\..\\config\\server\\database.php';
-require __DIR__ . '\\..\\..\\..\\config\\server\\salts.php';
-require __DIR__ . '\\..\\utilities\\database-connection.php';
+require __DIR__ . '/../autoloaders/vendor.php';
+require __DIR__ . '/../../../config/server/database.php';
+require __DIR__ . '/../../../config/server/salts.php';
+require __DIR__ . '/../utilities/database-connection.php';
 
 /**
  * Step 2: Instantiate a Slim application

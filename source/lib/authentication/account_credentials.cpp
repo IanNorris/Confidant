@@ -4,6 +4,11 @@
 #define CREDENTIALS_OPSLIMIT crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE * 4
 #define CREDENTIALS_MEMLIMIT crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE * 4
 
+#ifndef WIN32
+#define strcpy_s(dest, size, src) strcpy(dest, src)
+#define strcat_s(dest, size, src) strcat(dest, src)
+#endif
+
 bool GenerateKeyPairSeedFromCredentials( SeedKeySecureMemory& seedKeyOut, const SaltSecureMemory& salt, const SecureMemoryBase& username, const SecureMemoryBase& password )
 {
 	auto saltBytes = salt.lock();
