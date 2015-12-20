@@ -94,18 +94,77 @@ int main()
 		{
 			if( connected )
 			{
-				SecureMemory<char> tUsername( 4096 );
-				SecureMemory<char> tPassword( 4096 );
-				SecureMemory<char> tPasswordAgain( 4096 );
+				SecureMemory<4096> username;
+				SecureMemory<4096> password;
+				SecureMemory<4096> passwordAgain;
 	
 				std::cout << "Enter username: ";
-				SecureReadConsole( tUsername, true );
+				SecureReadConsole( username, true );
 
 				std::cout << "Enter password (hidden): ";
-				SecureReadConsole( tPassword, false );
+				SecureReadConsole( password, false );
 
 				std::cout << "Re-enter password (hidden): ";
-				SecureReadConsole( tPasswordAgain, false );
+				SecureReadConsole( passwordAgain, false );
+
+				SeedKeySecureMemory seedKey;
+
+				SigningPrivateKeySecureMemory privateKey;
+				SigningPublicKeySecureMemory publicKey;
+				SaltSecureMemory salt;
+
+				if( !GenerateKeyPairSeedFromCredentials( seedKey, salt, username, password ) )
+				{
+					std::cerr << "Unable to generate credentials seed." << std::endl;
+					return 2;
+				}
+
+				if( !GenerateSigningKeyPairFromSeed( privateKey, publicKey, seedKey ) )
+				{
+					std::cerr << "Unable to generate credentials keypair." << std::endl;
+					return 2;
+				}
+
+				//Test code to verify signature can be verified.
+				{
+					const char* testString = "hello world";
+					size_t messageLength = strlen(testString);
+
+					SecureMemory<> signedMessage( crypto_sign_BYTES + messageLength );
+					auto signedMessageBytes = signedMessage.lock( SecureMemoryBase::Write );
+
+					auto publicKeyBytes = publicKey.lock();
+					auto privateKeyBytes = privateKey.lock();
+
+					//Create a signed message
+					unsigned long long signedMessageLength = 0;
+					if( crypto_sign( signedMessageBytes, &signedMessageLength, (unsigned char*)testString, messageLength, privateKeyBytes ) != 0 )
+					{
+						std::cerr << "Unable to sign message." << std::endl;
+						return 2;
+					}
+
+					//Verify the signed message and extract the original message
+					unsigned long long unsignedMessageLength = 0;
+					SecureMemory<> unsignedMessage( messageLength );
+					auto unsignedMessageBytes = unsignedMessage.lock( SecureMemoryBase::Write );
+
+					if( crypto_sign_open( unsignedMessageBytes, &unsignedMessageLength, signedMessageBytes, signedMessageLength, publicKeyBytes ) != 0 )
+					{
+						std::cerr << "Message forged." << std::endl;
+						return 2;
+					}
+
+					if( memcmp( testString, unsignedMessageBytes, messageLength ) != 0 )
+					{
+						std::cerr << "Unsigned message does not match original." << std::endl;
+						return 2;
+					}
+					else
+					{
+						std::cout << "Keys successfully verified." << std::endl;
+					}
+				}
 			}
 			else
 			{

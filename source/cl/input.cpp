@@ -32,7 +32,7 @@ void SetStdinEcho( bool enable )
 #endif
 }
 
-bool SecureReadConsole( SecureMemory<char>& targetMemory, bool printToScreen )
+bool SecureReadConsole( SecureMemoryBase& targetMemory, bool printToScreen )
 {
 	//We need at least two characters including null terminator
 	size_t bufferPos = 0;
@@ -49,7 +49,7 @@ bool SecureReadConsole( SecureMemory<char>& targetMemory, bool printToScreen )
 
 	{
 		auto targetMemoryBuffer = targetMemory.lock( SecureMemoryBase::Write );
-		std::cin.getline( targetMemoryBuffer, bufferSize );
+		std::cin.getline( (char*)targetMemoryBuffer, bufferSize );
 	}
 
 	if( !printToScreen )

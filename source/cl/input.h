@@ -9,4 +9,4 @@
 //! \param printToScreen [IN]		- Should the input be echoed to the console?
 //! \return True if the input fit into the buffer, false if the input reached the buffer end
 //! \sa SecureMemory
-bool SecureReadConsole( SecureMemory<char>& targetMemory, bool printToScreen );
+bool SecureReadConsole( SecureMemoryBase& targetMemory, bool printToScreen );

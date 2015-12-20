@@ -26,28 +26,28 @@ void SecureMemoryBase::zeroMemory()
 	unlockAccess( Write );
 }
 
-void SecureMemoryBase::disableAccess()
+void SecureMemoryBase::disableAccess() const
 {
 #if !defined( DISABLE_SECURE_MEMORY_PAGE_PROTECTION )
 	sodium_mprotect_noaccess( m_allocation );
 #endif
 }
 
-void SecureMemoryBase::enableReadAccess()
+void SecureMemoryBase::enableReadAccess() const
 {
 #if !defined( DISABLE_SECURE_MEMORY_PAGE_PROTECTION )
 	sodium_mprotect_readonly( m_allocation );
 #endif
 }
 
-void SecureMemoryBase::enableReadWriteAccess()
+void SecureMemoryBase::enableReadWriteAccess() const
 {
 #if !defined( DISABLE_SECURE_MEMORY_PAGE_PROTECTION )
 	sodium_mprotect_readwrite( m_allocation );
 #endif
 }
 
-void SecureMemoryBase::lockAccess( unsigned int permissions )
+void SecureMemoryBase::lockAccess( unsigned int permissions ) const
 {
 	bool isReadEnabled = m_readLocks > 0;
 	bool isWriteEnabled = m_writeLocks > 0;
@@ -71,7 +71,7 @@ void SecureMemoryBase::lockAccess( unsigned int permissions )
 	}
 }
 
-void SecureMemoryBase::unlockAccess( unsigned int permissions )
+void SecureMemoryBase::unlockAccess( unsigned int permissions ) const
 {
 	bool isReadAt1 = m_readLocks == 1;
 	bool isWriteAt1 = m_writeLocks == 1;
