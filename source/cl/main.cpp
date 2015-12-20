@@ -7,7 +7,7 @@
 #include "restclient-cpp/restclient.h"
 #include "restclient-cpp/meta.h"
 #include <json/json.h>
-#include <string>
+#include <string.h> // string was already #include'd above, string.h is required for strlen and memcmp on linux
 
 #if defined( _MSC_VER )
 	#pragma comment(lib, "libconfidant.lib")

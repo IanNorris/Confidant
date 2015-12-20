@@ -14,8 +14,6 @@ includedirs
    VENDOR_DIR .. "restclient-cpp/vendor/jsoncpp-0.10.5/dist"
 }
 
-buildoptions{ "--std=c++11" }
-
 configuration "Debug"
 defines { "DEBUG" }
 flags { "Symbols" }
@@ -35,14 +33,13 @@ targetdir "build/release"
 -- autogen libsodium
 curr_dir = os.getcwd()
 os.chdir( VENDOR_DIR .. "libsodium" )
-os.execute( "./autogen.sh && ./configure" )
+os.execute( "sh autogen.sh && sh configure" )
 os.chdir( curr_dir )
 
 project "sodium"
 kind "StaticLib"
 files 
 {
-   VENDOR_DIR .. "libsodium/src/**.cpp",
    VENDOR_DIR .. "libsodium/src/**.c",
    VENDOR_DIR .. "libsodium/src/**.h"
 }
@@ -66,9 +63,11 @@ files
 project "Confidant"
 files { SOURCE_DIR .. "lib/**.cpp", SOURCE_DIR .. "lib/**.h" }
 kind "StaticLib"
+buildoptions{ "--std=c++11" }
 
 project "Client"
 files { SOURCE_DIR .. "cl/**.cpp", SOURCE_DIR .. "cl/**.h" }
 kind "ConsoleApp"
 targetname "Confidant"
 links { "Confidant", "sodium", "restclient", "json", "curl"}
+buildoptions{ "--std=c++11" }
