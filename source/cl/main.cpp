@@ -13,10 +13,49 @@
 	#pragma comment(lib, "libconfidant.lib")
 #endif
 
+int PostJsonQuery( bool secure, const std::string& server, const std::string& command, const Json::Value& queryValues, Json::Value resultValues )
+{
+	std::string tTargetPath = ( secure ? "https://" : "http://") + server + command;
+	
+	Json::FastWriter writer;
+	RestClient::response response = RestClient::post( tTargetPath, "text/json", writer.write( queryValues ) );
+			
+	bool success = false;
+	if( response.code == 200 )
+	{
+		Json::Reader reader;
+		if( !reader.parse( response.body, resultValues ) )
+		{
+			return 0;
+		}
+	}
+
+	return response.code;
+}
+
+bool PostJsonQueryWithErrorHandling( bool secure, const std::string& server, const std::string& command, const Json::Value& queryValues, Json::Value resultValues )
+{
+	int responseCode = PostJsonQuery( secure, server, command, queryValues, resultValues );
+	switch( responseCode )
+	{
+		case 0:
+			std::cerr << "Server returned a malformed response." << std::endl;
+			return false;
+
+		case 200:
+			return true;
+
+		default:
+			std::cerr << "Server returned error code " << responseCode << "." << std::endl;
+			return false;
+	}
+}
+
 int main()
 {
 	bool connected = false;
 	std::string serverName;
+	Json::Value connectionSettings;
 
 	if( sodium_init() == -1 )
 	{
@@ -42,35 +81,13 @@ int main()
 			std::cout << "Enter server name: ";
 			std::getline( std::cin, serverName );
 
-			std::string tTargetPath = "http://" + serverName + "/queryServer";
-
 			Json::Value query;
 			query[ "clientName" ] = "confidant-cl";
 
-			Json::FastWriter writer;
-
-
-			RestClient::response res = RestClient::post( tTargetPath, "text/json", writer.write( query ) );
-			
-			bool success = false;
-			if( res.code == 200 )
+			if( PostJsonQueryWithErrorHandling( false, serverName, "/queryServer", query, connectionSettings ) )
 			{
-				Json::Reader reader;
-				Json::Value responseValue;
-
-				if( reader.parse( res.body, responseValue ) )
-				{
-					connected = true;
-					std::cout << "Connected to server." << std::endl;
-				}
-				else
-				{
-					std::cerr << "Server did not respond correctly." << std::endl;
-				}
-			}
-			else
-			{
-				std::cerr << "Server returned an error." << std::endl;
+				std::cout << "Connected to server." << std::endl;
+				connected = true;
 			}
 		}
 		else if( tCommand.compare( "register" ) == 0 )
@@ -79,12 +96,16 @@ int main()
 			{
 				SecureMemory<char> tUsername( 4096 );
 				SecureMemory<char> tPassword( 4096 );
+				SecureMemory<char> tPasswordAgain( 4096 );
 	
 				std::cout << "Enter username: ";
 				SecureReadConsole( tUsername, true );
 
 				std::cout << "Enter password (hidden): ";
 				SecureReadConsole( tPassword, false );
+
+				std::cout << "Re-enter password (hidden): ";
+				SecureReadConsole( tPasswordAgain, false );
 			}
 			else
 			{
