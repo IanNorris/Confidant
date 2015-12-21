@@ -56,6 +56,40 @@ bool PostJsonQueryWithErrorHandling( bool secure, const std::string& server, con
 	}
 }
 
+bool ReadBinaryFileIntoSecureMemory( const std::string& filename, SecureMemoryBase& memoryOut, bool silentFail )
+{
+	std::ifstream saltFile( filename, std::ifstream::binary );
+	if( saltFile )
+	{
+		saltFile.seekg( 0, std::ios::end );
+		fpos_t fileSize = saltFile.tellg().seekpos();
+		saltFile.seekg( 0, std::ios::beg );
+
+		if( memoryOut.getSize() == 0 )
+		{
+			memoryOut.allocate( (size_t)fileSize );
+		}
+		else if( memoryOut.getSize() != fileSize )
+		{
+			std::cerr << "File " << filename << "does not match the expected file size of " << memoryOut.getSize() << "bytes , it is actually " << fileSize << " bytes." << std::endl;
+			return false;
+		}		
+
+		auto memoryOutBytes = memoryOut.lock( SecureMemoryBase::Write );
+		saltFile.read( memoryOutBytes, fileSize );
+	}
+	else
+	{
+		if( !silentFail )
+		{
+			std::cerr << "The file " << filename << " was not found, unable to load identity." << std::endl;
+		}
+		return false;
+	}
+
+	return true;
+}
+
 int main( int argc, char* argv[] )
 {
 	if( argc < 2 )
@@ -84,72 +118,25 @@ int main( int argc, char* argv[] )
 	Json::Value root;
 	Json::Value identities;
 
-	std::string identityPathRoot = identityPath + "confidant";
-
-	SaltSecureMemory passwordSalt;
-	SecureMemoryBase identityFileMemory;
-
 	SecureMemory<crypto_secretbox_NONCEBYTES> nonce;
 	auto nonceBytes = nonce.lock(SecureMemoryBase::Write);
 
-	std::ifstream identityFile( identityPathRoot, std::ifstream::binary );
-	if( identityFile )
+	SaltSecureMemory passwordSalt;
+	SecureMemoryBase identityFileMemory;
+	if( ReadBinaryFileIntoSecureMemory( identityPath + "confidant", identityFileMemory, true ) )
 	{
-		identityFile.seekg( 0, std::ios::end );
-		fpos_t fileSize = identityFile.tellg().seekpos();
-		identityFile.seekg( 0, std::ios::beg );
-
-		identityFileMemory.allocate( (size_t)fileSize );
-		auto identityFileMemoryBytes = identityFileMemory.lock( SecureMemoryBase::Write );
-		identityFile.read( identityFileMemoryBytes, fileSize );
-
-		std::ifstream saltFile( identityPath + "salt", std::ifstream::binary );
-		if( saltFile )
+		//Read the salt
+		if( !ReadBinaryFileIntoSecureMemory( identityPath + "salt", passwordSalt, false ) )
 		{
-			saltFile.seekg( 0, std::ios::end );
-			fpos_t saltSize = saltFile.tellg().seekpos();
-			saltFile.seekg( 0, std::ios::beg );
-
-			if( passwordSalt.getSize() != saltSize )
-			{
-				std::cerr << "The salt file is corrupted, unable to load identity." << std::endl;
-
-				return 1;
-			}		
-
-			auto passwordSaltBytes = passwordSalt.lock( SecureMemoryBase::Write );
-			saltFile.read( passwordSaltBytes, saltSize );
-		}
-		else
-		{
-			std::cerr << "The salt file was not found, unable to load identity." << std::endl;
-
 			return 1;
 		}
 
-		std::ifstream nonceFile( identityPath + "nonce", std::ifstream::binary );
-		if( nonceFile )
+		//Read the nonce
+		if( !ReadBinaryFileIntoSecureMemory( identityPath + "nonce", nonce, false ) )
 		{
-			nonceFile.seekg( 0, std::ios::end );
-			fpos_t nonceSize =  nonceFile.tellg().seekpos();
-			nonceFile.seekg( 0, std::ios::beg );
-
-			if( nonce.getSize() != nonceSize )
-			{
-				std::cerr << "The nonce file is corrupted, unable to load identity." << std::endl;
-
-				return 1;
-			}		
-
-			nonceFile.read( nonceBytes, nonceSize );
-		}
-		else
-		{
-			std::cerr << "The salt file was not found, unable to load identity." << std::endl;
-
 			return 1;
 		}
-
+		
 		SecureMemory<4096> password;
 		std::cout << "Enter password (hidden): ";
 		SecureReadConsole( password, false );
@@ -164,7 +151,7 @@ int main( int argc, char* argv[] )
 
 		SecureMemoryBase plainText( 1 + identityFileMemory.getSize() - crypto_secretbox_MACBYTES );
 		auto plainTextBytes = plainText.lock( SecureMemoryBase::Write );
-		if( crypto_secretbox_open_easy( plainTextBytes, identityFileMemoryBytes, identityFileMemory.getSize(), nonceBytes, passwordKeyBytes ) != 0 )
+		if( crypto_secretbox_open_easy( plainTextBytes, identityFileMemory.lock(), identityFileMemory.getSize(), nonceBytes, passwordKeyBytes ) != 0 )
 		{
 			std::cerr << "Unable to decrypt identity." << std::endl;
 			return 4;
@@ -268,7 +255,7 @@ int main( int argc, char* argv[] )
 
 		sodium_memzero( (void* const)identityJSON.c_str(), identityJSON.length() );
 
-		std::ofstream identityFileOut( identityPathRoot, std::ofstream::binary );
+		std::ofstream identityFileOut( identityPath + "confidant", std::ofstream::binary );
 
 		if( !identityFileOut )
 		{
