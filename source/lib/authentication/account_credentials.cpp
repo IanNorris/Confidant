@@ -1,29 +1,22 @@
 #include <confidant/authentication/account_credentials.h>
 #include <string.h>
 
-#define CREDENTIALS_OPSLIMIT crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE * 4
-#define CREDENTIALS_MEMLIMIT crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE * 4
+#define CREDENTIALS_OPSLIMIT crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE
+#define CREDENTIALS_MEMLIMIT crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE
 
 #ifndef WIN32
 #define strcpy_s(dest, size, src) strcpy(dest, src)
 #define strcat_s(dest, size, src) strcat(dest, src)
 #endif
 
-bool GenerateKeyPairSeedFromCredentials( SeedKeySecureMemory& seedKeyOut, const SaltSecureMemory& salt, const SecureMemoryBase& username, const SecureMemoryBase& password )
+bool GenerateKeyPairSeedFromPassword( SeedKeySecureMemory& seedKeyOut, const SaltSecureMemory& salt, const SecureMemoryBase& password )
 {
 	auto saltBytes = salt.lock();
-	auto usernameBytes = username.lock();
 	auto passwordBytes = password.lock();
-
-	SecureMemoryBase combinedKey( username.getSize() + password.getSize() );
-	auto combinedKeyBytes = combinedKey.lock( SecureMemoryBase::Write );
-
-	strcpy_s( combinedKeyBytes, combinedKey.getSize(), usernameBytes );
-	strcat_s( combinedKeyBytes, combinedKey.getSize(), passwordBytes );
 
 	auto seedBytes = seedKeyOut.lock( SecureMemoryBase::Write );
 
-	if( crypto_pwhash_scryptsalsa208sha256( seedBytes, seedKeyOut.getSize(), combinedKeyBytes, strlen(combinedKeyBytes), saltBytes, CREDENTIALS_OPSLIMIT, CREDENTIALS_MEMLIMIT ) != 0 )
+	if( crypto_pwhash_scryptsalsa208sha256( seedBytes, seedKeyOut.getSize(), passwordBytes, strlen(passwordBytes), saltBytes, CREDENTIALS_OPSLIMIT, CREDENTIALS_MEMLIMIT ) != 0 )
 	{
 		return false;
 	}

@@ -50,8 +50,12 @@ bool SecureReadConsole( SecureMemoryBase& targetMemory, bool printToScreen )
 		SetStdinEcho( false );
 	}
 
+	//NOTE: This bit is NOT secure. The contents are not directly written to the secure
+	//memory but to a buffer outside of our control. Short of writing our own input
+	//system I'm not sure how we can fix this.
 	{
 		auto targetMemoryBuffer = targetMemory.lock( SecureMemoryBase::Write );
+		targetMemory.zeroMemory();
 		std::cin.getline( (char*)targetMemoryBuffer, bufferSize );
 	}
 

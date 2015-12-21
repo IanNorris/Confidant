@@ -6,15 +6,35 @@ SecureMemoryBase::SecureMemoryBase( size_t allocationSize )
 , m_readLocks( 0 )
 , m_writeLocks( 0 )
 {
-	m_allocation = sodium_malloc( allocationSize );
+	allocate( allocationSize );
+}
 
-	zeroMemory();
+SecureMemoryBase::SecureMemoryBase()
+: m_allocation( nullptr )
+, m_allocationSize( 0 )
+, m_readLocks( 0 )
+, m_writeLocks( 0 )
+{
 }
 
 SecureMemoryBase::~SecureMemoryBase()
 {
 	sodium_free( m_allocation );
 	m_allocation = nullptr;
+}
+
+void SecureMemoryBase::allocate( size_t allocationSize )
+{
+	if( m_allocation )
+	{
+		sodium_free( m_allocation );
+	}
+
+	m_allocationSize = allocationSize;
+
+	m_allocation = sodium_malloc( allocationSize );
+
+	zeroMemory();
 }
 
 void SecureMemoryBase::zeroMemory()
@@ -101,4 +121,17 @@ void SecureMemoryBase::unlockAccess( unsigned int permissions ) const
 			disableAccess();
 		}
 	}
+}
+
+bool SecureMemoryCompare( const SecureMemoryBase& left, const SecureMemoryBase& right )
+{
+	if( left.getSize() != right.getSize() )
+	{
+		return false;
+	}
+
+	auto leftBytes = left.lock();
+	auto rightBytes = right.lock();
+
+	return sodium_memcmp( leftBytes, rightBytes, left.getSize() ) == 0;
 }

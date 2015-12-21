@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sodium.h>
+#include <exception>
 
 //Define this if you need to be able to debug
 //If this is not defined the memory will be
@@ -47,6 +48,13 @@ public:
 		//! \brief Get a pointer to the actual buffer.
 		//! \return A pointer to the buffer
 		operator void*()
+		{
+			return m_locked->get();
+		}
+
+		//! \brief Get a pointer to the actual buffer.
+		//! \return A pointer to the buffer
+		operator const void*()
 		{
 			return m_locked->get();
 		}
@@ -108,9 +116,9 @@ public:
 
 		//! \brief Get a pointer to the actual buffer.
 		//! \return A pointer to the buffer
-		operator char*()
+		operator const void*()
 		{
-			return (char*)m_locked->get();
+			return m_locked->get();
 		}
 
 		//! \brief Get a pointer to the actual buffer.
@@ -118,13 +126,6 @@ public:
 		operator const char*()
 		{
 			return (const char*)m_locked->get();
-		}
-
-		//! \brief Get a pointer to the actual buffer.
-		//! \return A pointer to the buffer
-		operator unsigned char*()
-		{
-			return (unsigned char*)m_locked->get();
 		}
 
 		//! \brief Get a pointer to the actual buffer.
@@ -144,6 +145,9 @@ public:
 	//! \param allocationSize [IN] - The size of the allocation to be made
 	SecureMemoryBase( size_t allocationSize );
 
+	//! \brief Constructor
+	SecureMemoryBase();
+
 	//! \brief Destructor
 	~SecureMemoryBase();
 
@@ -153,6 +157,11 @@ public:
 
 	//! \brief Securely erase the memory in the buffer
 	void zeroMemory();
+
+	//! \brief Allocate the specified number of bytes securely. It is not 
+	//!		necessary to call this if you specified a size in the constructor.
+	//! \param allocationSize [IN] - The size of the allocation to be made
+	void allocate( size_t allocationSize );
 
 	//! \brief Create a locked object for access to the buffer
 	//! \param permissions [IN] - The permissions you require. See SecureMemoryBase::EAccess
@@ -224,3 +233,44 @@ public:
 	: SecureMemoryBase( allocationSize )
 	{}
 };
+
+class ToHexSecureMemory : public SecureMemoryBase
+{
+public:
+	
+	//! \brief Constructor
+	//! \param allocationSize [IN] - The size of the allocation to be made
+	ToHexSecureMemory( const SecureMemoryBase& binaryMemory )
+	: SecureMemoryBase( (binaryMemory.getSize() * 2) + 1 )
+	{
+		if( !sodium_bin2hex( lock( Write ), getSize(), binaryMemory.lock(), binaryMemory.getSize() ) )
+		{
+			throw std::exception( "bin2hex overflow" );
+		}
+	}
+};
+
+class FromHexSecureMemory : public SecureMemoryBase
+{
+public:
+	
+	//! \brief Constructor
+	//! \param allocationSize [IN] - The size of the allocation to be made
+	FromHexSecureMemory( const SecureMemoryBase& hexMemory )
+	: SecureMemoryBase( (hexMemory.getSize() - 1) / 2 )
+	{
+		size_t bytesWritten = 0;
+
+		if( sodium_hex2bin( lock( Write ), getSize(), hexMemory.lock(), hexMemory.getSize(), NULL, &bytesWritten, NULL ) != 0 )
+		{
+			throw std::exception( "hex2bin overflow" );
+		}
+
+		if( bytesWritten != getSize() )
+		{
+			throw std::exception( "hex2bin size mismatch" );
+		}
+	}
+};
+
+bool SecureMemoryCompare( const SecureMemoryBase& left, const SecureMemoryBase& right );
