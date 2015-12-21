@@ -81,9 +81,16 @@ int main( int argc, char* argv[] )
 		identityPath.append( 1, PATH_SEPARATOR );
 	}
 
+	Json::Value root;
+	Json::Value identities;
+
 	std::string identityPathRoot = identityPath + "confidant";
 
+	SaltSecureMemory passwordSalt;
 	SecureMemoryBase identityFileMemory;
+
+	SecureMemory<crypto_secretbox_NONCEBYTES> nonce;
+	auto nonceBytes = nonce.lock(SecureMemoryBase::Write);
 
 	std::ifstream identityFile( identityPathRoot, std::ifstream::binary );
 	if( identityFile )
@@ -92,14 +99,85 @@ int main( int argc, char* argv[] )
 		fpos_t fileSize = identityFile.tellg().seekpos();
 		identityFile.seekg( 0, std::ios::beg );
 
-		identityFileMemory.allocate( (size_t)fileSize + 1 );
+		identityFileMemory.allocate( (size_t)fileSize );
 		auto identityFileMemoryBytes = identityFileMemory.lock( SecureMemoryBase::Write );
 		identityFile.read( identityFileMemoryBytes, fileSize );
-		((char*)identityFileMemoryBytes)[ fileSize ] = 0;
+
+		std::ifstream saltFile( identityPath + "salt", std::ifstream::binary );
+		if( saltFile )
+		{
+			saltFile.seekg( 0, std::ios::end );
+			fpos_t saltSize = saltFile.tellg().seekpos();
+			saltFile.seekg( 0, std::ios::beg );
+
+			if( passwordSalt.getSize() != saltSize )
+			{
+				std::cerr << "The salt file is corrupted, unable to load identity." << std::endl;
+
+				return 1;
+			}		
+
+			auto passwordSaltBytes = passwordSalt.lock( SecureMemoryBase::Write );
+			saltFile.read( passwordSaltBytes, saltSize );
+		}
+		else
+		{
+			std::cerr << "The salt file was not found, unable to load identity." << std::endl;
+
+			return 1;
+		}
+
+		std::ifstream nonceFile( identityPath + "nonce", std::ifstream::binary );
+		if( nonceFile )
+		{
+			nonceFile.seekg( 0, std::ios::end );
+			fpos_t nonceSize =  nonceFile.tellg().seekpos();
+			nonceFile.seekg( 0, std::ios::beg );
+
+			if( nonce.getSize() != nonceSize )
+			{
+				std::cerr << "The nonce file is corrupted, unable to load identity." << std::endl;
+
+				return 1;
+			}		
+
+			nonceFile.read( nonceBytes, nonceSize );
+		}
+		else
+		{
+			std::cerr << "The salt file was not found, unable to load identity." << std::endl;
+
+			return 1;
+		}
 
 		SecureMemory<4096> password;
 		std::cout << "Enter password (hidden): ";
 		SecureReadConsole( password, false );
+
+		SeedKeySecureMemory passwordKey;
+		auto passwordKeyBytes = passwordKey.lock();
+		if( !GenerateKeyPairSeedFromPassword( passwordKey, passwordSalt, password ) )
+		{
+			std::cerr << "Unable to generate keypair." << std::endl;
+			return 3;
+		}
+
+		SecureMemoryBase plainText( 1 + identityFileMemory.getSize() - crypto_secretbox_MACBYTES );
+		auto plainTextBytes = plainText.lock( SecureMemoryBase::Write );
+		if( crypto_secretbox_open_easy( plainTextBytes, identityFileMemoryBytes, identityFileMemory.getSize(), nonceBytes, passwordKeyBytes ) != 0 )
+		{
+			std::cerr << "Unable to decrypt identity." << std::endl;
+			return 4;
+		}
+		((char*)plainTextBytes)[ identityFileMemory.getSize() - crypto_secretbox_MACBYTES ] = 0;
+
+		Json::Reader reader;
+		if( !reader.parse( (const char*)plainTextBytes, root ) )
+		{
+			std::cerr << "Unable to parse identity." << std::endl;
+			return 5;
+		}
+		identities = root[ "identities" ]; 
 	}
 	else
 	{
@@ -134,8 +212,8 @@ int main( int argc, char* argv[] )
 
 		std::cout << "Your identity is now being created. This may take a long time on slow devices." << std::endl;
 
-		SaltSecureMemory passwordSalt;
 		FillBufferWithRandomBytes( passwordSalt );
+		auto passwordSaltBytes = passwordSalt.lock();
 		
 		SeedKeySecureMemory passwordKey;
 		auto passwordKeyBytes = passwordKey.lock();
@@ -144,11 +222,6 @@ int main( int argc, char* argv[] )
 			std::cerr << "Unable to generate keypair." << std::endl;
 			return 3;
 		}
-
-		ToHexSecureMemory passwordSaltHex( passwordSalt );
-		auto passwordSaltHexBytes = passwordSaltHex.lock();
-
-		//TODO: Write salt to disc, we'll need it later
 
 		SeedKeySecureMemory identitySeed;
 		FillBufferWithRandomBytes( identitySeed );
@@ -165,14 +238,20 @@ int main( int argc, char* argv[] )
 		std::string identityName;
 		std::getline( std::cin, identityName );
 
-		SecureMemory<crypto_secretbox_NONCEBYTES> nonce;
-		auto nonceBytes = nonce.lock();
 		FillBufferWithRandomBytes( nonce );
 		
+		std::ofstream nonceFileOut( identityPath + "nonce", std::ofstream::binary );
+		if( !nonceFileOut )
+		{
+			std::cerr << "Unable to write to file " << identityPath << "nonce." << std::endl;
+			return 4;
+		}
+
+		nonceFileOut.write( nonceBytes, nonce.getSize() );
+		nonceFileOut.close();
+
 		//TODO: How do we stop Json::Value leaving junk in memory? Custom allocator?
 
-		Json::Value root;
-		Json::Value identities;
 		identities[ identityName ] = (const char*)identitySeedHexBytes;
 		root[ "identities" ] = identities;
 
@@ -201,14 +280,13 @@ int main( int argc, char* argv[] )
 		identityFileOut.close();
 
 		std::ofstream passwordSaltFileOut( identityPath + "salt", std::ofstream::binary );
-
 		if( !passwordSaltFileOut )
 		{
 			std::cerr << "Unable to write to file " << identityPath << "salt." << std::endl;
 			return 4;
 		}
 
-		passwordSaltFileOut.write( passwordSaltHexBytes, passwordSaltHex.getSize() );
+		passwordSaltFileOut.write( passwordSaltBytes, passwordSalt.getSize() );
 		passwordSaltFileOut.close();
 
 		std::cout << "Identity successfully written to disc." << std::endl;
