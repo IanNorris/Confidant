@@ -8,7 +8,7 @@
 //unreadable in the debugger when the protected
 //flag is set.
 #if defined( _DEBUG )
-	#define DISABLE_SECURE_MEMORY_PAGE_PROTECTION
+//	#define DISABLE_SECURE_MEMORY_PAGE_PROTECTION
 #endif
 
 class SecureMemoryBase

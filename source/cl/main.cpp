@@ -90,6 +90,64 @@ bool ReadBinaryFileIntoSecureMemory( const std::string& filename, SecureMemoryBa
 	return true;
 }
 
+bool WriteSecureMemoryToFile( const std::string& filename, const SecureMemoryBase& content )
+{
+	std::ofstream file( filename, std::ofstream::binary );
+	if( !file )
+	{
+		std::cerr << "Unable to write to file " << filename << std::endl;
+		return false;
+	}
+
+	file.write( content.lock(), content.getSize() );
+	file.close();
+
+	return true;
+}
+
+bool DecryptAuthenticated( const SecureMemoryBase& encryptedMemory, const SeedKeySecureMemory& key, const NonceSecureMemory& nonce, SecureMemoryBase& plainTextOut )
+{
+	plainTextOut.allocate( 1 + encryptedMemory.getSize() - crypto_secretbox_MACBYTES );
+	auto plainTextBytes = plainTextOut.lock( SecureMemoryBase::Write );
+
+	auto nonceBytes = nonce.lock();
+	auto keyBytes = key.lock();
+
+	if( crypto_secretbox_open_easy( plainTextBytes, encryptedMemory.lock(), encryptedMemory.getSize(), nonceBytes, keyBytes ) != 0 )
+	{
+		return false;
+	}
+	((char*)plainTextBytes)[ encryptedMemory.getSize() - crypto_secretbox_MACBYTES ] = 0;
+
+	return true;
+}
+
+bool EncryptAuthenticated( const char* plainTextBytes, size_t plainTextLength, const SeedKeySecureMemory& key, const NonceSecureMemory& nonce, SecureMemoryBase& cipherTextOut )
+{
+	cipherTextOut.allocate( crypto_secretbox_MACBYTES + plainTextLength );
+	auto cipherTextBytes = cipherTextOut.lock( SecureMemoryBase::Write );
+
+	auto nonceBytes = nonce.lock();
+	auto keyBytes = key.lock();
+
+	if( crypto_secretbox_easy( cipherTextBytes, (const unsigned char*)plainTextBytes, plainTextLength, nonceBytes, keyBytes ) != 0 )
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool EncryptAuthenticated( const std::string& plainText, const SeedKeySecureMemory& key, const NonceSecureMemory& nonce, SecureMemoryBase& plainTextOut )
+{
+	return EncryptAuthenticated( plainText.c_str(), plainText.size(), key, nonce, plainTextOut ); 
+}
+
+bool EncryptAuthenticated( const SecureMemoryBase& plainText, const SeedKeySecureMemory& key, const NonceSecureMemory& nonce, SecureMemoryBase& plainTextOut )
+{
+	return EncryptAuthenticated( plainText.lock(), plainText.getSize(), key, nonce, plainTextOut ); 
+}
+
 int main( int argc, char* argv[] )
 {
 	if( argc < 2 )
@@ -118,7 +176,7 @@ int main( int argc, char* argv[] )
 	Json::Value root;
 	Json::Value identities;
 
-	SecureMemory<crypto_secretbox_NONCEBYTES> nonce;
+	NonceSecureMemory nonce;
 	auto nonceBytes = nonce.lock(SecureMemoryBase::Write);
 
 	SaltSecureMemory passwordSalt;
@@ -149,15 +207,14 @@ int main( int argc, char* argv[] )
 			return 3;
 		}
 
-		SecureMemoryBase plainText( 1 + identityFileMemory.getSize() - crypto_secretbox_MACBYTES );
-		auto plainTextBytes = plainText.lock( SecureMemoryBase::Write );
-		if( crypto_secretbox_open_easy( plainTextBytes, identityFileMemory.lock(), identityFileMemory.getSize(), nonceBytes, passwordKeyBytes ) != 0 )
+		SecureMemoryBase plainText;
+		if( !DecryptAuthenticated( identityFileMemory, passwordKey, nonce, plainText ) )
 		{
-			std::cerr << "Unable to decrypt identity." << std::endl;
+			std::cerr << "Unable to decrypt identity file." << std::endl;
 			return 4;
 		}
-		((char*)plainTextBytes)[ identityFileMemory.getSize() - crypto_secretbox_MACBYTES ] = 0;
 
+		auto plainTextBytes = plainText.lock();
 		Json::Reader reader;
 		if( !reader.parse( (const char*)plainTextBytes, root ) )
 		{
@@ -226,17 +283,12 @@ int main( int argc, char* argv[] )
 		std::getline( std::cin, identityName );
 
 		FillBufferWithRandomBytes( nonce );
-		
-		std::ofstream nonceFileOut( identityPath + "nonce", std::ofstream::binary );
-		if( !nonceFileOut )
+
+		if( !WriteSecureMemoryToFile( identityPath + "nonce", nonce ) )
 		{
-			std::cerr << "Unable to write to file " << identityPath << "nonce." << std::endl;
 			return 4;
 		}
-
-		nonceFileOut.write( nonceBytes, nonce.getSize() );
-		nonceFileOut.close();
-
+		
 		//TODO: How do we stop Json::Value leaving junk in memory? Custom allocator?
 
 		identities[ identityName ] = (const char*)identitySeedHexBytes;
@@ -245,36 +297,25 @@ int main( int argc, char* argv[] )
 		Json::FastWriter writer;
 		std::string identityJSON = writer.write( root );
 
-		SecureMemoryBase cipherTextFile( crypto_secretbox_MACBYTES + identityJSON.size() );
-		auto cipherTextFileBytes = cipherTextFile.lock( SecureMemoryBase::Write );
-		if( crypto_secretbox_easy( cipherTextFileBytes, (const unsigned char*)identityJSON.c_str(), identityJSON.size(), nonceBytes, passwordKeyBytes ) != 0 )
+		SecureMemoryBase cipherText;
+		if( !EncryptAuthenticated( identityJSON, passwordKey, nonce, cipherText ) )
 		{
 			std::cerr << "Unable to encrypt identity." << std::endl;
 			return 4;
 		}
 
+		//Erase the plain text from memory, we don't need it again
 		sodium_memzero( (void* const)identityJSON.c_str(), identityJSON.length() );
 
-		std::ofstream identityFileOut( identityPath + "confidant", std::ofstream::binary );
-
-		if( !identityFileOut )
+		if( !WriteSecureMemoryToFile( identityPath + "confidant", cipherText ) )
 		{
-			std::cerr << "Unable to write to file " << identityPath << "." << std::endl;
 			return 4;
 		}
 
-		identityFileOut.write( cipherTextFileBytes, cipherTextFile.getSize() );
-		identityFileOut.close();
-
-		std::ofstream passwordSaltFileOut( identityPath + "salt", std::ofstream::binary );
-		if( !passwordSaltFileOut )
+		if( !WriteSecureMemoryToFile( identityPath + "salt", passwordSalt ) )
 		{
-			std::cerr << "Unable to write to file " << identityPath << "salt." << std::endl;
 			return 4;
 		}
-
-		passwordSaltFileOut.write( passwordSaltBytes, passwordSalt.getSize() );
-		passwordSaltFileOut.close();
 
 		std::cout << "Identity successfully written to disc." << std::endl;
 	}

@@ -11,6 +11,8 @@ typedef SecureMemory< crypto_box_PUBLICKEYBYTES > EncryptingPublicKeySecureMemor
 
 typedef SecureMemory< crypto_box_SEEDBYTES > SeedKeySecureMemory;
 
+typedef SecureMemory<crypto_secretbox_NONCEBYTES> NonceSecureMemory;
+
 bool GenerateKeyPairSeedFromPassword( SeedKeySecureMemory& seedKey, const SaltSecureMemory& salt, const SecureMemoryBase& password );
 bool GenerateSigningKeyPairFromSeed( SigningPrivateKeySecureMemory& privateKeyOut, SigningPublicKeySecureMemory& publicKeyOut, const SeedKeySecureMemory& seedKey );
 bool GenerateEncryptingKeyPairFromSeed( EncryptingPrivateKeySecureMemory& privateKeyOut, EncryptingPublicKeySecureMemory& publicKeyOut, const SeedKeySecureMemory& seedKey );
