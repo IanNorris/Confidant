@@ -179,6 +179,9 @@ int main( int argc, char* argv[] )
 	NonceSecureMemory nonce;
 	auto nonceBytes = nonce.lock(SecureMemoryBase::Write);
 
+	SeedKeySecureMemory currentIdentitySeed;
+	std::string currentIdentity = "";
+
 	SaltSecureMemory passwordSalt;
 	SecureMemoryBase identityFileMemory;
 	if( ReadBinaryFileIntoSecureMemory( identityPath + "confidant", identityFileMemory, true ) )
@@ -320,7 +323,63 @@ int main( int argc, char* argv[] )
 		std::cout << "Identity successfully written to disc." << std::endl;
 	}
 
-	std::string currentIdentity = "Personal";
+	auto children = identities.getMemberNames();
+	
+	int identityChoice = -1;
+	if( children.size() == 0 )
+	{
+		std::cerr << "No valid identity found." << std::endl;
+		return 5;
+	}
+	else if( children.size() == 1 )
+	{
+		identityChoice = 0;
+	}
+	else
+	{
+		while( true )
+		{
+			std::cout << "Please pick the identity number you would like to act as:" << std::endl;
+
+			size_t identityCount = children.size();
+			for( size_t identity = 0; identity < identityCount; identity++ )
+			{
+				std::cout << "[" << identity << "] " << children[ identity ];
+			}
+
+			std::cout << "Identity: ";
+
+			size_t identityChoice = (size_t)-1;
+			std::cin >> identityChoice;
+			
+			if( identityChoice < 0 || identityChoice >= children.size() )
+			{
+				std::cerr << identityChoice << " is not a valid idenitity." << std::endl;
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
+	if( identityChoice == -1 )
+	{
+		return 6;
+	}
+
+	std::string identitySeedHex = identities[ children[ identityChoice ] ].asString();
+	currentIdentity = children[ identityChoice ];
+
+	//Save the identity seed for later
+	auto currentIdentitySeedBytes = currentIdentitySeed.lock( SecureMemoryBase::Write );
+
+	size_t bytesWritten = 0;
+	if( sodium_hex2bin( currentIdentitySeedBytes, currentIdentitySeed.getSize(), identitySeedHex.c_str(), identitySeedHex.size(), nullptr, &bytesWritten, nullptr ) != 0 || bytesWritten != currentIdentitySeed.getSize() )
+	{
+		std::cerr << "Failed to decode identity." << std::endl;
+		return 8;
+	}
 
 	bool connected = false;
 	std::string serverName;
