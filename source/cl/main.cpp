@@ -1,6 +1,7 @@
 
 #include <confidant/authentication.h>
 #include <confidant/common/random.h>
+#include <confidant/common/base64.h>
 
 #include "input.h"
 #include <string>
@@ -146,6 +147,43 @@ bool EncryptAuthenticated( const std::string& plainText, const SeedKeySecureMemo
 bool EncryptAuthenticated( const SecureMemoryBase& plainText, const SeedKeySecureMemory& key, const NonceSecureMemory& nonce, SecureMemoryBase& plainTextOut )
 {
 	return EncryptAuthenticated( plainText.lock(), plainText.getSize(), key, nonce, plainTextOut ); 
+}
+
+bool JsonStringValueToSecureMemory( const Json::Value& jsonValue, const char* keyName, SecureMemoryBase& memoryOut )
+{
+	SecureMemoryBase b64EncodedEncryptedNonce;
+	Json::Value jsonValueOfKey = jsonValue.get( keyName, Json::Value(false) );
+
+	if( !jsonValueOfKey.isString() )
+	{
+		return false;
+	}
+
+	const char* jsonValueOfKeyAsString = jsonValueOfKey.asCString();
+	if( !jsonValueOfKeyAsString )
+	{
+		return false;
+	}
+
+	size_t stringLength = strlen(jsonValueOfKeyAsString);
+			
+	memoryOut.allocate( stringLength + 1 );
+	memcpy( memoryOut.lock( SecureMemoryBase::Write ), jsonValueOfKeyAsString, stringLength );
+
+	return true;
+}
+
+bool JsonStringValueToBase64DecodedSecureMemory( const Json::Value& jsonValue, const char* keyName, SecureMemoryBase& memoryOut )
+{
+	SecureMemoryBase encodedMemory;
+	if( !JsonStringValueToSecureMemory( jsonValue, keyName, encodedMemory ) )
+	{
+		return false;
+	}
+
+	base64_decode( memoryOut, encodedMemory );
+
+	return true;
 }
 
 int main( int argc, char* argv[] )
@@ -381,9 +419,52 @@ int main( int argc, char* argv[] )
 		return 8;
 	}
 
+	SigningPrivateKeySecureMemory currentSigningPrivateKey;
+	SigningPublicKeySecureMemory currentSigningPublicKey;
+
+	EncryptingPrivateKeySecureMemory currentEncryptingPrivateKey;
+	EncryptingPublicKeySecureMemory currentEncryptingPublicKey;
+
+	if( !GenerateSigningKeyPairFromSeed( currentSigningPrivateKey, currentSigningPublicKey, currentIdentitySeed ) )
+	{
+		std::cerr << "Failed to decode identity." << std::endl;
+		return 8;
+	}
+
+	if( !GenerateEncryptingKeyPairFromSeed( currentEncryptingPrivateKey, currentEncryptingPublicKey, currentIdentitySeed ) )
+	{
+		std::cerr << "Failed to decode identity." << std::endl;
+		return 8;
+	}
+
+	SecureMemoryBase b64PublicSigningKey;
+	SecureMemoryBase b64PublicEncryptingKey;
+
+	base64_encode( b64PublicSigningKey, currentSigningPublicKey );
+	base64_encode( b64PublicEncryptingKey, currentEncryptingPublicKey );
+
+	auto signPK = b64PublicSigningKey.lock( SecureMemoryBase::Write );
+	auto encryptPK = b64PublicEncryptingKey.lock( SecureMemoryBase::Write );
+
+	{
+		char* signPKEnd = signPK;
+		signPKEnd = &signPKEnd[ b64PublicSigningKey.getSize() - 1 ];
+		while( *signPKEnd == '\0' || *signPKEnd == '=' ) signPKEnd--;
+		*(signPKEnd+1) = '\0';
+	}
+
+	{
+		char* encryptPKEnd = encryptPK;
+		encryptPKEnd = &encryptPKEnd[ b64PublicEncryptingKey.getSize() - 1 ];
+		while( *encryptPKEnd == '\0' || *encryptPKEnd == '=' ) encryptPKEnd--;
+		*(encryptPKEnd+1) = '\0';
+	}
+
+	std::cout << currentIdentity << " public message key: " << (const char*)signPK << std::endl;
+	std::cout << currentIdentity << " public signing key: " << (const char*)encryptPK << std::endl;
+
 	bool connected = false;
 	std::string serverName;
-	Json::Value connectionSettings;
 
 	while( true )
 	{
@@ -401,17 +482,45 @@ int main( int argc, char* argv[] )
 			std::getline( std::cin, serverName );
 
 			Json::Value query;
-			query[ "clientName" ] = "confidant-cl";
+			query[ "publicKey" ] = (const char*)encryptPK;
 
-			if( PostJsonQueryWithErrorHandling( false, serverName, "/queryServer", query, connectionSettings ) )
+			Json::Value sessionInfo;
+
+			if( PostJsonQueryWithErrorHandling( false, serverName, "/authenticate/begin", query, sessionInfo ) )
 			{
 				std::cout << "Connected to server." << std::endl;
 				connected = true;
 			}
+
+			Json::Value encryptedNonce;
+			if( !JsonStringValueToBase64DecodedSecureMemory( sessionInfo, "encryptedNonce", encryptedNonce ) )
+			{
+				std::cerr << "Server did not send an encrypted nonce in a format the client can read." << std::endl;
+				return 500;
+			}
+
+			Json::Value blockNonce;
+			if( !JsonStringValueToBase64DecodedSecureMemory( sessionInfo, "blockNonce", blockNonce ) )
+			{
+				std::cerr << "Server did not send a block nonce in a format the client can read." << std::endl;
+				return 500;
+			}
+
+
+			//TODO: Its expecting a seed block, that's surely wrong?
+
+			SecureMemoryBase nonce;
+			if( !DecryptAuthenticated( encryptedNonce, currentEncryptingPrivateKey, blockNonce, nonce ) )
+			{
+				std::cerr << "Unable to decrypt identity file." << std::endl;
+				return 4;
+			}
+
+
 		}
 		else if( tCommand.compare( "register" ) == 0 )
 		{
-			/*if( connected )
+			if( connected )
 			{
 				SecureMemory<4096> username;
 				SecureMemory<4096> password;
@@ -494,7 +603,7 @@ int main( int argc, char* argv[] )
 			else
 			{
 				std::cerr << "Not connected to a server." << std::endl;
-			}*/
+			}
 		}
 	}
 
