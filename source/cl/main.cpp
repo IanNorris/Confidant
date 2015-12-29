@@ -186,7 +186,7 @@ bool JsonStringValueToBase64DecodedSecureMemory( const Json::Value& jsonValue, c
 	return true;
 }
 
-int main( int argc, char* argv[] )
+int mainInternal( int argc, char* argv[] )
 {
 	if( argc < 2 )
 	{
@@ -492,14 +492,14 @@ int main( int argc, char* argv[] )
 				connected = true;
 			}
 
-			Json::Value encryptedNonce;
+			SecureMemoryBase encryptedNonce;
 			if( !JsonStringValueToBase64DecodedSecureMemory( sessionInfo, "encryptedNonce", encryptedNonce ) )
 			{
 				std::cerr << "Server did not send an encrypted nonce in a format the client can read." << std::endl;
 				return 500;
 			}
 
-			Json::Value blockNonce;
+			NonceSecureMemory blockNonce;
 			if( !JsonStringValueToBase64DecodedSecureMemory( sessionInfo, "blockNonce", blockNonce ) )
 			{
 				std::cerr << "Server did not send a block nonce in a format the client can read." << std::endl;
@@ -520,7 +520,7 @@ int main( int argc, char* argv[] )
 		}
 		else if( tCommand.compare( "register" ) == 0 )
 		{
-			if( connected )
+			/*if( connected )
 			{
 				SecureMemory<4096> username;
 				SecureMemory<4096> password;
@@ -547,7 +547,7 @@ int main( int argc, char* argv[] )
 
 				//saltBytes
 
-				if( !GenerateKeyPairSeedFromCredentials( seedKey, salt, username, password ) )
+				if( !GenerateKeyPairSeedFromPassword( seedKey, salt, password ) )
 				{
 					std::cerr << "Unable to generate credentials seed." << std::endl;
 					return 2;
@@ -603,9 +603,14 @@ int main( int argc, char* argv[] )
 			else
 			{
 				std::cerr << "Not connected to a server." << std::endl;
-			}
+			}*/
 		}
 	}
 
 	return 0;
+}
+
+int main( int argc, char* argv[] )
+{
+	return mainInternal( argc, argv );
 }
